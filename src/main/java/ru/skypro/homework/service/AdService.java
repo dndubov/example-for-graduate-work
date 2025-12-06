@@ -28,16 +28,16 @@ import java.util.stream.Collectors;
 @Transactional
 public class AdService {
 
-    private final AdRepository adRepository;
-    private final UserRepository userRepository; // для поиска автора объявления
-    private final AdMappingService adMappingService;
+    private static AdRepository adRepository;
+    private static UserRepository userRepository; // для поиска автора объявления
+    private static AdMappingService adMappingService;
     private final UserMappingService userMappingService; // для получения данных автора в ExtendedAd
 
     // Путь для сохранения изображений объявлений
-    private final String adImageUploadPath = "uploads/ads/";
+    private static final String adImageUploadPath = "uploads/ads/";
 
     // Метод для получения текущего пользователя
-    private UserEntity getCurrentUserEntity() {
+    private static UserEntity getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
         return userRepository.findByEmail(email)
@@ -45,7 +45,7 @@ public class AdService {
     }
 
     // Метод для проверки прав администратора
-    private boolean isAdmin() {
+    private static boolean isAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
@@ -107,7 +107,7 @@ public class AdService {
     }
 
     // Вспомогательный метод для сохранения изображения
-    private String saveAdImage(MultipartFile image) {
+    private static String saveAdImage(MultipartFile image) {
         if (image == null || image.isEmpty()) {
             return null; // или бросить исключение, если изображение обязательно
         }
