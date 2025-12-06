@@ -3,9 +3,13 @@ package ru.skypro.homework.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.*;
+import ru.skypro.homework.service.AdService;
 
 @RestController
 @RequestMapping("/ads")
@@ -15,43 +19,52 @@ public class AdsController {
 
     @Operation(summary = "Получить все объявления")
     @GetMapping
-    public Ads getAllAds() {
-        return new Ads();
+    public ResponseEntity<Ads> getAllAds() {
+        Ads ads = AdService.getAllAds();
+        return ResponseEntity.ok(ads);
     }
 
     @Operation(summary = "Создать новое объявление")
-    @PostMapping
-    public Ad addAd(@RequestPart("properties") CreateOrUpdateAd ad,
-                    @RequestPart("image") MultipartFile image) {
-        return new Ad();
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Ad> createAd(
+            @RequestPart("properties") CreateOrUpdateAd dto,
+            @RequestPart("image") MultipartFile image) {
+        Ad ad = AdService.createAd(dto, image);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ad);
     }
 
     @Operation(summary = "Получить объявление по ID")
     @GetMapping("/{id}")
-    public ExtendedAd getAds(@PathVariable int id) {
-        return new ExtendedAd();
+    public ResponseEntity<ExtendedAd> getAd(@PathVariable Long id) {
+        ExtendedAd ad = AdService.getAdById(id);
+        return ResponseEntity.ok(ad);
     }
 
     @Operation(summary = "Удалить объявление по ID")
     @DeleteMapping("/{id}")
-    public void removeAd(@PathVariable int id) {
+    public ResponseEntity<?> deleteAd(@PathVariable Long id) {
+        AdService.deleteAd(id);
+        return ResponseEntity.noContent().build();
     }
-
     @Operation(summary = "Обновить объявление по ID")
     @PatchMapping("/{id}")
-    public Ad updateAds(@PathVariable int id, @RequestBody CreateOrUpdateAd ad) {
-        return new Ad();
+    public ResponseEntity<Ad> updateAd(@PathVariable Long id, @RequestBody CreateOrUpdateAd dto) {
+        Ad ad = AdService.updateAd(id, dto);
+        return ResponseEntity.ok(ad);
     }
 
     @Operation(summary = "Получить все объявления текущего пользователя")
     @GetMapping("/me")
-    public Ads getAdsMe() {
-        return new Ads();
+    public ResponseEntity<Ads> getMyAds() {
+        Ads ads = AdService.getMyAds();
+        return ResponseEntity.ok(ads);
     }
 
     @Operation(summary = "Обновить изображение объявления по ID")
-    @PatchMapping("/{id}/image")
-    public void updateImage(@PathVariable int id, @RequestPart("image") MultipartFile image) {
+    @PatchMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateAdImage(@PathVariable Long id, @RequestPart("image") MultipartFile image) {
+        AdService.updateAdImage(id, image);
+        return ResponseEntity.ok().build();
     }
 
     // ================= Комментарии =================

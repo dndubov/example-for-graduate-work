@@ -3,10 +3,13 @@ package ru.skypro.homework.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.NewPassword;
 import ru.skypro.homework.dto.UpdateUser;
 import ru.skypro.homework.dto.User;
+import ru.skypro.homework.service.UserService;
 
 @RestController
 @RequestMapping("/users")
@@ -16,18 +19,27 @@ public class UserController {
 
     @Operation(summary = "Сменить пароль пользователя")
     @PostMapping("/set_password")
-    public void setPassword(@RequestBody NewPassword newPassword) {
+    public ResponseEntity<?> setPassword(@RequestBody NewPassword dto) {
+        UserService.setPassword(dto);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "Получить информацию о текущем пользователе")
     @GetMapping("/me")
-    public User getUser() {
-        return new User();
+    public static ResponseEntity<User> getCurrentUser() {
+        User user = UserService.getCurrentUser();
+        return ResponseEntity.ok(user);
     }
 
     @Operation(summary = "Обновить данные текущего пользователя")
     @PatchMapping("/me")
-    public UpdateUser updateUser(@RequestBody UpdateUser updateUser) {
-        return new UpdateUser();
+    public static ResponseEntity<User> updateUser(@RequestBody UpdateUser dto) {
+        User updatedUser = UserService.updateUser(dto);
+        return ResponseEntity.ok(updatedUser);
+    }
+    @PatchMapping("/me/image")
+    public ResponseEntity<?> updateUserImage(@RequestParam("image") MultipartFile image) {
+        UserService.updateUserImage(image);
+        return ResponseEntity.ok().build();
     }
 }

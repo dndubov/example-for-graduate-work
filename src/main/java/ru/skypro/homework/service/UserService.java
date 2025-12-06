@@ -27,8 +27,8 @@ import java.util.UUID;
 @Transactional
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final UserMappingService userMappingService;
+    private static UserRepository userRepository;
+    private static UserMappingService userMappingService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager; // для проверки текущего пароля
 
@@ -36,26 +36,26 @@ public class UserService {
     private final String avatarUploadPath = "uploads/avatars/";
 
     // Метод для получения текущего пользователя
-    private UserEntity getCurrentUserEntity() {
+    private static UserEntity getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName(); // имя пользователя (email)
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    public User getCurrentUser() {
+    public static User getCurrentUser() {
         UserEntity userEntity = getCurrentUserEntity();
         return userMappingService.toUserDto(userEntity);
     }
 
-    public User updateUser(UpdateUser dto) {
+    public static User updateUser(UpdateUser dto) {
         UserEntity userEntity = getCurrentUserEntity();
         userMappingService.updateUserEntity(dto, userEntity);
         UserEntity saved = userRepository.save(userEntity);
         return userMappingService.toUserDto(saved);
     }
 
-    public void updateUserImage(MultipartFile image) {
+    public static void updateUserImage(MultipartFile image) {
         UserEntity userEntity = getCurrentUserEntity();
 
         // Генерация уникального имени файла (например, с UUID)
@@ -85,7 +85,7 @@ public class UserService {
         userRepository.save(userEntity);
     }
 
-    public void setPassword(NewPassword dto) {
+    public static void setPassword(NewPassword dto) {
         UserEntity userEntity = getCurrentUserEntity();
 
         // Проверить текущий пароль
