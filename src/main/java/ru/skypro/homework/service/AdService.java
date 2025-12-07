@@ -42,6 +42,16 @@ public class AdService {
         return UserService.getCurrentUserEntity();
     }
 
+    //Метод для проверки владельца
+    public boolean isOwner(Long adId) {
+        AdEntity ad = adRepository.findById(adId).orElse(null);
+        if (ad == null) {
+            return false;
+        }
+        UserEntity currentUser = getCurrentUserEntity();
+        return ad.getAuthor().equals(currentUser);
+    }
+
     // Метод для проверки прав администратора
     private static boolean isAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

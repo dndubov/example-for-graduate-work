@@ -31,7 +31,17 @@ public class CommentService {
 
     // Метод для получения текущего пользователя
     private UserEntity getCurrentUserEntity() {
-        return userService.getCurrentUserEntity();
+        return UserService.getCurrentUserEntity();
+    }
+
+    //Метод для проверки прав владельца
+    public boolean isOwner(Long adId) {
+        AdEntity ad = adRepository.findById(adId).orElse(null);
+        if (ad == null) {
+            return false;
+        }
+        UserEntity currentUser = getCurrentUserEntity();
+        return ad.getAuthor().equals(currentUser);
     }
 
     // Метод для проверки прав администратора

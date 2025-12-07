@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.NewPassword;
@@ -26,6 +27,7 @@ public class UserController {
 
     @Operation(summary = "Получить информацию о текущем пользователе")
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     public static ResponseEntity<User> getCurrentUser() {
         User user = UserService.getCurrentUser();
         return ResponseEntity.ok(user);
@@ -33,11 +35,13 @@ public class UserController {
 
     @Operation(summary = "Обновить данные текущего пользователя")
     @PatchMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     public static ResponseEntity<User> updateUser(@RequestBody UpdateUser dto) {
         User updatedUser = UserService.updateUser(dto);
         return ResponseEntity.ok(updatedUser);
     }
     @PatchMapping("/me/image")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> updateUserImage(@RequestParam("image") MultipartFile image) {
         UserService.updateUserImage(image);
         return ResponseEntity.ok().build();

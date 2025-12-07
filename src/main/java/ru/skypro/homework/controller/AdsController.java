@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.*;
@@ -41,6 +42,7 @@ public class AdsController {
     }
 
     @Operation(summary = "Удалить объявление по ID")
+    @PreAuthorize("@userService.isAdmin() or @adService.isOwner(#id)")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAd(@PathVariable Long id) {
         AdService.deleteAd(id);
@@ -55,12 +57,14 @@ public class AdsController {
 
     @Operation(summary = "Получить все объявления текущего пользователя")
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Ads> getMyAds() {
         Ads ads = AdService.getMyAds();
         return ResponseEntity.ok(ads);
     }
 
     @Operation(summary = "Обновить изображение объявления по ID")
+    @PreAuthorize("isAuthenticated()")
     @PatchMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateAdImage(@PathVariable Long id, @RequestPart("image") MultipartFile image) {
         AdService.updateAdImage(id, image);
