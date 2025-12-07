@@ -5,11 +5,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.NewPassword;
 import ru.skypro.homework.dto.UpdateUser;
 import ru.skypro.homework.dto.User;
+import ru.skypro.homework.service.AuthService;
 import ru.skypro.homework.service.UserService;
 
 @RestController
@@ -18,11 +21,24 @@ import ru.skypro.homework.service.UserService;
 @Tag(name = "Пользователи", description = "Получение и обновление информации о пользователях")
 public class UserController {
 
+    private static AuthService authService;
+
     @Operation(summary = "Сменить пароль пользователя")
     @PostMapping("/set_password")
     public ResponseEntity<?> setPassword(@RequestBody NewPassword dto) {
-        UserService.setPassword(dto);
-        return ResponseEntity.ok().build();
+        // Получаем имя текущего пользователя (email) из SecurityContext
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        // Вызываем метод AuthService для изменения пароля
+        boolean success = authService.changePassword(username, dto.getCurrentPassword(), dto.getNewPassword());
+
+        if (success) {
+            return ResponseEntity.ok().build(); // 200 OK
+        } else {
+            // Возвращаем 400 Bad Request, если текущий пароль неверен
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @Operation(summary = "Получить информацию о текущем пользователе")

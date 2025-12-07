@@ -9,6 +9,8 @@ import ru.skypro.homework.dto.Register;
 import ru.skypro.homework.service.AuthService;
 import ru.skypro.homework.service.CustomUserDetailsManager;
 
+import java.util.Optional;
+
 @Service
 public class AuthServiceImpl implements AuthService {
 
@@ -43,6 +45,57 @@ public class AuthServiceImpl implements AuthService {
                         .username(register.getUsername())
                         .roles(register.getRole().name())
                         .build());
+        return true;
+    }
+
+    @Override
+    public boolean changePassword(String name, String currentPassword, String newPassword) {
+        if (!manager.userExists(name)) {
+            return false; // Пользователь не найден
+        }
+
+        // Загружаем данные пользователя
+        UserDetails userDetails = manager.loadUserByUsername(name);
+
+        // Проверяем, совпадает ли текущий пароль с хешированным в БД
+        if (!encoder.matches(currentPassword, userDetails.getPassword())) {
+            return false; // Текущий пароль неверен
+        }
+
+        // Если пароль верен, обновляем его на новый
+        // Создаем обновленный объект UserDetails
+        UserDetails updatedUserDetails = User.builder()
+                .username(userDetails.getUsername())
+                .password(encoder.encode(newPassword)) // Хешируем новый пароль
+                .authorities(userDetails.getAuthorities()) // Сохраняем старые права
+                .build();
+
+        // Обновляем пользователя в хранилище
+        manager.updateUser(updatedUserDetails);
+
+        return true; // Пароль успешно изменён
+    }
+
+    @Override
+    public boolean setNewPassword(String email, String newPassword) {
+        if (!manager.userExists(email)) {
+            return false; // Пользователь не найден
+        }
+
+        // Загружаем текущие данные пользователя
+        UserDetails userDetails = manager.loadUserByUsername(email);
+
+        // Создаем обновленный объект UserDetails с новым паролем
+        // Все остальные поля (username, authorities) остаются прежними
+        UserDetails updatedUserDetails = User.builder()
+                .username(userDetails.getUsername())
+                .password(encoder.encode(newPassword)) // Хешируем новый пароль
+                .authorities(userDetails.getAuthorities()) // Сохраняем старые права
+                .build();
+
+        // Обновляем пользователя в хранилище
+        manager.updateUser(updatedUserDetails);
+
         return true;
     }
 
