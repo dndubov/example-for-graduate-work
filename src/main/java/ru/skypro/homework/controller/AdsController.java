@@ -67,29 +67,4 @@ public class AdsController {
         return ResponseEntity.ok().build();
     }
 
-    // ================= Комментарии =================
-
-    @Operation(summary = "Получить все комментарии к объявлению")
-    @GetMapping("/{id}/comments")
-    public Comments getComments(@PathVariable int id) {
-        return new Comments();
-    }
-
-    @Operation(summary = "Добавить комментарий к объявлению")
-    @PostMapping("/{id}/comments")
-    public Comment addComment(@PathVariable int id, @RequestBody CreateOrUpdateComment comment) {
-        return new Comment();
-    }
-
-    @Operation(summary = "Обновить комментарий к объявлению")
-    @PatchMapping("/{adId}/comments/{commentId}")
-    public Comment updateComment(@PathVariable int adId, @PathVariable int commentId,
-                                 @RequestBody CreateOrUpdateComment comment) {
-        return new Comment();
-    }
-
-    @Operation(summary = "Удалить комментарий к объявлению")
-    @DeleteMapping("/{adId}/comments/{commentId}")
-    public void deleteComment(@PathVariable int adId, @PathVariable int commentId) {
-    }
 }

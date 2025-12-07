@@ -29,14 +29,14 @@ public class UserService {
 
     private static UserRepository userRepository;
     private static UserMappingService userMappingService;
-    private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager; // для проверки текущего пароля
+    private static PasswordEncoder passwordEncoder;
+    private static AuthenticationManager authenticationManager; // для проверки текущего пароля
 
     // Путь для сохранения аватаров
-    private final String avatarUploadPath = "uploads/avatars/";
+    private static final String avatarUploadPath = "uploads/avatars/";
 
     // Метод для получения текущего пользователя
-    private static UserEntity getCurrentUserEntity() {
+    static UserEntity getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName(); // имя пользователя (email)
         return userRepository.findByEmail(email)
@@ -103,5 +103,18 @@ public class UserService {
         String encodedNewPassword = passwordEncoder.encode(dto.getNewPassword());
         userEntity.setPassword(encodedNewPassword);
         userRepository.save(userEntity);
+    }
+    public void checkOwnerOrAdmin(UserEntity owner) {
+        UserEntity currentUser = getCurrentUserEntity();
+        if (!owner.equals(currentUser) && !isAdmin()) {
+            throw new RuntimeException("You do not have permission to perform this action.");
+        }
+    }
+
+    // Метод для проверки прав администратора
+    public boolean isAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 }

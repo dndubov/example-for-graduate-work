@@ -32,16 +32,14 @@ public class AdService {
     private static UserRepository userRepository; // для поиска автора объявления
     private static AdMappingService adMappingService;
     private final UserMappingService userMappingService; // для получения данных автора в ExtendedAd
+    private static UserService userService;
 
     // Путь для сохранения изображений объявлений
     private static final String adImageUploadPath = "uploads/ads/";
 
     // Метод для получения текущего пользователя
     private static UserEntity getCurrentUserEntity() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        return UserService.getCurrentUserEntity();
     }
 
     // Метод для проверки прав администратора
@@ -81,12 +79,8 @@ public class AdService {
         AdEntity entity = adRepository.findById(adId)
                 .orElseThrow(() -> new RuntimeException("Ad not found"));
 
-        UserEntity currentUser = getCurrentUserEntity();
 
-        // Проверка прав: владелец или админ
-        if (!entity.getAuthor().equals(currentUser) && !isAdmin()) {
-            throw new RuntimeException("You do not have permission to update this ad's image.");
-        }
+        userService.checkOwnerOrAdmin(entity.getAuthor());
 
         // Удалить старое изображение
         if (entity.getImage() != null) {
@@ -145,12 +139,7 @@ public class AdService {
         AdEntity entity = adRepository.findById(adId)
                 .orElseThrow(() -> new RuntimeException("Ad not found"));
 
-        UserEntity currentUser = getCurrentUserEntity();
-
-        // Проверка прав: владелец или админ
-        if (!entity.getAuthor().equals(currentUser) && !isAdmin()) {
-            throw new RuntimeException("You do not have permission to update this ad.");
-        }
+        userService.checkOwnerOrAdmin(entity.getAuthor());
 
         // Обновить поля сущности
         adMappingService.updateEntity(dto, entity);
@@ -164,12 +153,8 @@ public class AdService {
         AdEntity entity = adRepository.findById(adId)
                 .orElseThrow(() -> new RuntimeException("Ad not found"));
 
-        UserEntity currentUser = getCurrentUserEntity();
 
-        // Проверка прав: владелец или админ
-        if (!entity.getAuthor().equals(currentUser) && !isAdmin()) {
-            throw new RuntimeException("You do not have permission to delete this ad.");
-        }
+        userService.checkOwnerOrAdmin(entity.getAuthor());
 
         // Удалить файл изображения, если он есть
         if (entity.getImage() != null) {
@@ -183,4 +168,5 @@ public class AdService {
         }
         adRepository.delete(entity);
     }
+
 }
