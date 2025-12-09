@@ -14,6 +14,11 @@ import ru.skypro.homework.dto.Role;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
+/**
+ * Определяет методы аутентификации
+ * Управляет белыми списками страниц, не требующими аутентификации
+ * Определяет какие роли или права доступа требуются для доступа к определенным URL
+ */
 public class WebSecurityConfig {
 
     private static final String[] AUTH_WHITELIST = {

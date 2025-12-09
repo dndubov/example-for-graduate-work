@@ -37,12 +37,19 @@ public class AdService {
     // Путь для сохранения изображений объявлений
     private static final String adImageUploadPath = "uploads/ads/";
 
-    // Метод для получения текущего пользователя
+    /**
+     * Метод для получения текущего пользователя
+     */
     private static UserEntity getCurrentUserEntity() {
         return UserService.getCurrentUserEntity();
     }
 
-    //Метод для проверки владельца
+    /**
+     * Метод для проверки владельца
+     *
+     * @param adId
+     * @return Author == currentUser
+     */
     public boolean isOwner(Long adId) {
         AdEntity ad = adRepository.findById(adId).orElse(null);
         if (ad == null) {
@@ -52,23 +59,35 @@ public class AdService {
         return ad.getAuthor().equals(currentUser);
     }
 
-    // Метод для проверки прав администратора
+    /**
+     * Метод для проверки прав администратора
+     *
+     * @return USER role
+     */
     private static boolean isAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
-    //Получает все объявления
+    /**
+     * Получает все объявления
+     *
+     * @return Ads DTO
+     */
     public static Ads getAllAds() {
         List<AdEntity> entities = adRepository.findAll();
         List<Ad> results = entities.stream()
                 .map(adMappingService::toAdDto)
                 .collect(Collectors.toList());
-        return new Ads(results.size(), results); // предполагается, что Ads DTO имеет поля count и results
+        return new Ads(results.size(), results);
     }
 
-    //Получает объявления текущего пользователя
+    /**
+     * Получает объявления текущего пользователя
+     *
+     * @return Ads DTO, автор текущий пользователь
+     */
     public static Ads getMyAds() {
         UserEntity currentUser = getCurrentUserEntity();
         List<AdEntity> entities = adRepository.findByAuthor(currentUser);
@@ -78,42 +97,56 @@ public class AdService {
         return new Ads(results.size(), results);
     }
 
-    //Получает расширенную информацию об объявлении по ID
+    /**
+     * Получает расширенную информацию об объявлении по ID
+     *
+     * @param id
+     * @return Ad DTO
+     */
     public static ExtendedAd getAdById(Long id) {
         AdEntity entity = adRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ad not found"));
         return adMappingService.toExtendedDto(entity);
     }
-    //Обновляет изображение объявления. Проверяет права доступа
+
+    /**
+     * Обновляет изображение объявления. Проверяет права доступа
+     *
+     * @param adId
+     * @param image Удаляет старое изображение, выводит ошибку в случае неуспеха (если изображение отсутствует)
+     *              Сохраняет новое изображение
+     */
     public static void updateAdImage(Long adId, MultipartFile image) {
         AdEntity entity = adRepository.findById(adId)
                 .orElseThrow(() -> new RuntimeException("Ad not found"));
 
-
         userService.checkOwnerOrAdmin(entity.getAuthor());
 
-        // Удалить старое изображение
         if (entity.getImage() != null) {
             Path oldImagePath = Paths.get(entity.getImage());
             try {
                 Files.deleteIfExists(oldImagePath);
             } catch (IOException e) {
-                // Логировать ошибку
                 System.err.println("Could not delete old ad image: " + e.getMessage());
             }
         }
 
-        // Сохранить новое изображение
         String newPath = saveAdImage(image);
         entity.setImage(newPath);
 
         adRepository.save(entity);
     }
 
-    // Вспомогательный метод для сохранения изображения
+    /**
+     * Метод для сохранения изображения
+     *
+     * @param image Захватывает изображение по адресу uploads/ads/
+     *              Выводит ошибку в случае недоступности пути сохранения filePath
+     * @return
+     */
     private static String saveAdImage(MultipartFile image) {
         if (image == null || image.isEmpty()) {
-            return null; // или бросить исключение, если изображение обязательно
+            return null;
         }
 
         String fileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
@@ -125,18 +158,26 @@ public class AdService {
         } catch (IOException e) {
             throw new RuntimeException("Failed to save ad image", e);
         }
-
         return filePath.toString();
     }
 
-    //Создает новое объявление от имени текущего пользователя
+    /**
+     * Создает новое объявление от имени текущего пользователя
+     *
+     * @param dto
+     * @param image Сохраняет изображение и получает путь
+     *              Создает сущность объявления
+     *              Сохраняет объявление в БД
+     *              Выводит результат
+     * @return
+     */
     public static Ad createAd(CreateOrUpdateAd dto, MultipartFile image) {
         UserEntity currentUser = getCurrentUserEntity();
 
-        // Сохранить изображение и получить путь
+
         String imagePath = saveAdImage(image);
 
-        // Создать сущность объявления
+
         AdEntity entity = adMappingService.toNewEntity(dto, currentUser);
         entity.setImage(imagePath);
 
@@ -144,35 +185,44 @@ public class AdService {
         return adMappingService.toAdDto(saved);
     }
 
-    //Обновляет объявление. Проверяет, является ли текущий пользователь владельцем или администратором
+    /**
+     * Обновляет объявление. Проверяет, является ли текущий пользователь владельцем или администратором
+     *
+     * @param adId
+     * @param dto  Обновляет поля сущности
+     *             Сохраняет изменения в БД
+     * @return
+     */
     public static Ad updateAd(Long adId, CreateOrUpdateAd dto) {
         AdEntity entity = adRepository.findById(adId)
                 .orElseThrow(() -> new RuntimeException("Ad not found"));
 
         userService.checkOwnerOrAdmin(entity.getAuthor());
 
-        // Обновить поля сущности
         adMappingService.updateEntity(dto, entity);
 
         AdEntity updated = adRepository.save(entity);
         return adMappingService.toAdDto(updated);
     }
 
-    //Удаляет объявление. Проверяет права доступа
+    /**
+     * Удаляет объявление. Проверяет права доступа
+     * Выводит ошибку в случае отсутствия объявления
+     * Удаляет файл изображения, если он есть, выводит ошибку, если изображение отсутствует
+     * @param adId
+     */
     public static void deleteAd(Long adId) {
         AdEntity entity = adRepository.findById(adId)
                 .orElseThrow(() -> new RuntimeException("Ad not found"));
 
-
         userService.checkOwnerOrAdmin(entity.getAuthor());
 
-        // Удалить файл изображения, если он есть
         if (entity.getImage() != null) {
             Path imagePath = Paths.get(entity.getImage());
             try {
                 Files.deleteIfExists(imagePath);
             } catch (IOException e) {
-                // Логировать ошибку
+
                 System.err.println("Could not delete ad image: " + e.getMessage());
             }
         }

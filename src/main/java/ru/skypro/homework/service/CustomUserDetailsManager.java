@@ -17,37 +17,52 @@ import java.util.List;
 public class CustomUserDetailsManager implements UserDetailsManager {
 
     private final UserRepository userRepository;
-    private final UserMappingService userMappingService; // для преобразования User (Spring Security) в UserEntity
+    /**
+     * для преобразования User (Spring Security) в UserEntity
+     */
+    private final UserMappingService userMappingService;
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    /**
+     * Метод создает пользователя
+     * Преобразует Spring Security User в UserEntity
+     * Преобразуем роль пользователя из Authorities в роль пользователя в соответствии с моделью БД, например, ROLE_USER -> USER
+     */
     public void createUser(UserDetails user) {
-        // Преобразуем Spring Security User в UserEntity
+
         UserEntity entity = new UserEntity();
         entity.setEmail(user.getUsername());
         entity.setPassword(user.getPassword());
-        // Извлекаем роль из authorities, например, ROLE_USER -> USER
-        String role = user.getAuthorities().iterator().next().getAuthority().substring(5); // "ROLE_" prefix
+        String role = user.getAuthorities().iterator().next().getAuthority().substring(5);
         entity.setRole(role);
 
         userRepository.save(entity);
     }
 
     @Override
+    /**
+     * Обновление пользователя - через updateUser в UserService
+     */
     public void updateUser(UserDetails user) {
-        // Аналогично createUser
-        throw new UnsupportedOperationException("Not implemented");
+
+        throw new UnsupportedOperationException("Unsupported Operation");
     }
 
     @Override
+    /**
+     * Удаление пользователя по Email
+     */
     public void deleteUser(String username) {
         userRepository.deleteByEmail(username);
     }
 
     @Override
+    /**
+     * Изменение пароля - через AuthenticationManager в UserService
+     */
     public void changePassword(String oldPassword, String newPassword) {
-        // Изменение пароля через AuthenticationManager в UserService
-        throw new UnsupportedOperationException("Not implemented");
+        throw new UnsupportedOperationException("Unsupported Operation");
     }
 
     @Override

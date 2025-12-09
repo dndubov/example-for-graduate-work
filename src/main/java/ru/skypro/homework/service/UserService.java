@@ -32,10 +32,15 @@ public class UserService {
     private static PasswordEncoder passwordEncoder;
     private static AuthenticationManager authenticationManager; // для проверки текущего пароля
 
-    // Путь для сохранения аватаров
+    /**
+     * Устанавливает путь для сохранения аватаров
+     */
     private static final String avatarUploadPath = "uploads/avatars/";
 
-    // Метод для получения текущего пользователя
+    /**
+     * Метод для получения текущего пользователя из контекста аутентификации
+     * @return
+     */
     static UserEntity getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName(); // имя пользователя (email)
@@ -58,37 +63,50 @@ public class UserService {
     public static void updateUserImage(MultipartFile image) {
         UserEntity userEntity = getCurrentUserEntity();
 
-        // Генерация уникального имени файла (например, с UUID)
+        /**
+         * Генерация уникального имени файла (например, с UUID)
+         * Создает директорию, если её нет
+         * Сохраняет файл
+         * Удаляет старое изображение, если оно было
+         * Логирует ошибку, если старого изображения нет, но не прерывает выполнение
+         * Обновляет путь к изображению в сущности
+         */
         String fileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
         Path filePath = Paths.get(avatarUploadPath).resolve(fileName);
 
         try {
-            // Создать директорию, если её нет
+
             Files.createDirectories(Paths.get(avatarUploadPath));
-            // Сохранить файл
+
             Files.write(filePath, image.getBytes());
         } catch (IOException e) {
             throw new RuntimeException("Failed to save avatar image", e);
         }
-        // Удалить старое изображение, если оно было
+
         if (userEntity.getImage() != null) {
             Path oldImagePath = Paths.get(userEntity.getImage());
             try {
                 Files.deleteIfExists(oldImagePath);
             } catch (IOException e) {
-                // Логировать ошибку, но не прерывать выполнение
+
                 System.err.println("Could not delete old avatar: " + e.getMessage());
             }
         }
-        // Обновить путь к изображению в сущности
+
         userEntity.setImage(filePath.toString());
         userRepository.save(userEntity);
     }
 
+    /**
+     * Сервис установки текущего пароля
+     * Проверить текущий пароль
+     * Закодировать и установить новый пароль
+     * @param dto
+     */
     public static void setPassword(NewPassword dto) {
         UserEntity userEntity = getCurrentUserEntity();
 
-        // Проверить текущий пароль
+
         Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
         try {
             authenticationManager.authenticate(
@@ -99,11 +117,16 @@ public class UserService {
             throw new RuntimeException("Current password is incorrect");
         }
 
-        // Закодировать и установить новый пароль
+
         String encodedNewPassword = passwordEncoder.encode(dto.getNewPassword());
         userEntity.setPassword(encodedNewPassword);
         userRepository.save(userEntity);
     }
+
+    /**
+     * Метод проверяет наличие прав владельца объявления/комментария или прав админа
+     * @param owner
+     */
     public void checkOwnerOrAdmin(UserEntity owner) {
         UserEntity currentUser = getCurrentUserEntity();
         if (!owner.equals(currentUser) && !isAdmin()) {
@@ -111,7 +134,10 @@ public class UserService {
         }
     }
 
-    // Метод для проверки прав администратора
+    /**
+     * Метод проверки наличия прав администратора
+     * @return
+     */
     public boolean isAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication.getAuthorities().stream()

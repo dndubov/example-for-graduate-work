@@ -19,24 +19,31 @@ import ru.skypro.homework.service.UserService;
 @RequestMapping("/users")
 @RequiredArgsConstructor
 @Tag(name = "Пользователи", description = "Получение и обновление информации о пользователях")
+/**
+ * Определяет методы работы с данными пользователя
+ */
 public class UserController {
 
     private static AuthService authService;
 
     @Operation(summary = "Сменить пароль пользователя")
     @PostMapping("/set_password")
+    /**
+     * Метод setPassword устанавливает пароль пользователя
+     * Получаем имя текущего пользователя (email) из SecurityContext
+     * Вызываем метод AuthService для изменения пароля
+     * Возвращаем 400 Bad Request, если текущий пароль неверен
+     */
     public ResponseEntity<?> setPassword(@RequestBody NewPassword dto) {
-        // Получаем имя текущего пользователя (email) из SecurityContext
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
-        // Вызываем метод AuthService для изменения пароля
         boolean success = authService.changePassword(username, dto.getCurrentPassword(), dto.getNewPassword());
 
         if (success) {
-            return ResponseEntity.ok().build(); // 200 OK
+            return ResponseEntity.ok().build();
         } else {
-            // Возвращаем 400 Bad Request, если текущий пароль неверен
             return ResponseEntity.badRequest().build();
         }
     }

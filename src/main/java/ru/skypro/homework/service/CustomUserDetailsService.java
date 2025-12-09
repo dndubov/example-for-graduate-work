@@ -26,7 +26,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         // Преобразуем роль из строки в GrantedAuthority
         GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole());
 
-        // Создаем UserDetails (предоставленный Spring Security User)
+        /**
+         * Создает UserDetails (предоставленный Spring Security User)
+         */
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail()) // используем email как username
                 .password(user.getPassword()) // уже захешированный пароль

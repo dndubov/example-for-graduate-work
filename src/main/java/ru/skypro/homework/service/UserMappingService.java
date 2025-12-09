@@ -13,17 +13,29 @@ public class UserMappingService {
 
     private final UserMapper userMapper;
 
-    // Entity → User DTO
+    /**
+     * Трансформация Entity → User DTO
+     * @param entity
+     * @return
+     */
     public User toUserDto(UserEntity entity) {
         return userMapper.toDto(entity);
     }
 
-    // User DTO → Entity (если понадобится)
+    /**
+     * Трансформация User DTO → Entity (если понадобится)
+     * @param dto
+     * @return
+     */
     public UserEntity toUserEntity(User dto) {
         return userMapper.toEntity(dto);
     }
 
-    // Обновление UserEntity по UpdateUser DTO
+    /**
+     * Обновление UserEntity по UpdateUser DTO
+     * @param dto
+     * @param entity
+     */
     public void updateUserEntity(UpdateUser dto, UserEntity entity) {
         if (dto.getFirstName() != null) {
             entity.setFirstName(dto.getFirstName());

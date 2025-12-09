@@ -49,51 +49,67 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    /**
+     * Метод changePassword управляет сменой пароля
+     * Загружаем данные пользователя
+     * Проверяем, совпадает ли текущий пароль с хешированным в БД
+     * Если пароль верен, обновляем его на новый
+     * Создаем обновленный объект UserDetails
+     * Хешируем новый пароль
+     * Сохраняем старые права
+     * Обновляем пользователя в хранилище
+     */
     public boolean changePassword(String name, String currentPassword, String newPassword) {
         if (!manager.userExists(name)) {
             return false; // Пользователь не найден
         }
 
-        // Загружаем данные пользователя
         UserDetails userDetails = manager.loadUserByUsername(name);
 
-        // Проверяем, совпадает ли текущий пароль с хешированным в БД
         if (!encoder.matches(currentPassword, userDetails.getPassword())) {
             return false; // Текущий пароль неверен
         }
 
-        // Если пароль верен, обновляем его на новый
-        // Создаем обновленный объект UserDetails
         UserDetails updatedUserDetails = User.builder()
                 .username(userDetails.getUsername())
-                .password(encoder.encode(newPassword)) // Хешируем новый пароль
-                .authorities(userDetails.getAuthorities()) // Сохраняем старые права
+
+                .password(encoder.encode(newPassword))
+
+                .authorities(userDetails.getAuthorities())
                 .build();
 
-        // Обновляем пользователя в хранилище
         manager.updateUser(updatedUserDetails);
 
         return true; // Пароль успешно изменён
     }
 
     @Override
+    /**
+     * Метод setNewPassword управляет установкой нового пароля
+     * Загружаем текущие данные пользователя
+     * Создаем обновленный объект UserDetails с новым паролем
+     * Все остальные поля (username, authorities) остаются прежними
+     * обновляем пользователя в хранилище
+     * Хешируем новый пароль
+     * Сохраняем старые права
+     * Обновляем пользователя в хранилище
+     */
     public boolean setNewPassword(String email, String newPassword) {
         if (!manager.userExists(email)) {
             return false; // Пользователь не найден
         }
 
-        // Загружаем текущие данные пользователя
+
         UserDetails userDetails = manager.loadUserByUsername(email);
 
-        // Создаем обновленный объект UserDetails с новым паролем
-        // Все остальные поля (username, authorities) остаются прежними
+
         UserDetails updatedUserDetails = User.builder()
                 .username(userDetails.getUsername())
-                .password(encoder.encode(newPassword)) // Хешируем новый пароль
-                .authorities(userDetails.getAuthorities()) // Сохраняем старые права
+                .password(encoder.encode(newPassword))
+                .authorities(userDetails.getAuthorities())
                 .build();
 
-        // Обновляем пользователя в хранилище
+
         manager.updateUser(updatedUserDetails);
 
         return true;

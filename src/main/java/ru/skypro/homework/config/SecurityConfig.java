@@ -18,13 +18,19 @@ import ru.skypro.homework.service.CustomUserDetailsService;
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true) // Включаем @PreAuthorize
 @RequiredArgsConstructor
+/**
+ * Реализует кастомную логику разграничения прав доступа в соответствии с ролевой моделью
+ */
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
 
     @Bean
+    /**
+     * Метод PasswordEncoder использует BCrypt для хеширования паролей
+     */
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(); // Используем BCrypt для хеширования паролей
+        return new BCryptPasswordEncoder();
     }
 
     @Bean

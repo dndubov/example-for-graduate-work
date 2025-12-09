@@ -29,12 +29,19 @@ public class CommentService {
     private CommentMappingService commentMappingService;
     private final UserService userService;
 
-    // Метод для получения текущего пользователя
+    /**
+     * Метод для получения текущего пользователя
+     * @return current user
+     */
     private UserEntity getCurrentUserEntity() {
         return UserService.getCurrentUserEntity();
     }
 
-    //Метод для проверки прав владельца
+    /**
+     * Метод для проверки прав владельца
+     * @param adId
+     * @return boolean Author == current user
+     */
     public boolean isOwner(Long adId) {
         AdEntity ad = adRepository.findById(adId).orElse(null);
         if (ad == null) {
@@ -44,12 +51,19 @@ public class CommentService {
         return ad.getAuthor().equals(currentUser);
     }
 
-    // Метод для проверки прав администратора
+    /**
+     * Метод для проверки прав администратора
+     * @return boolean
+     */
     private boolean isAdmin() {
         return userService.isAdmin();
     }
 
-    //Получает все комментарии к объявлению, отсортированные по дате создания (новые сверху)
+    /**
+     * Получает все комментарии к объявлению, отсортированные по дате создания (новые сверху)
+     * @param adId
+     * @return Comments DTO
+     */
     public Comments getCommentsByAdId(Long adId) {
         AdEntity ad = adRepository.findById(adId)
                 .orElseThrow(() -> new RuntimeException("Ad not found"));
@@ -60,31 +74,50 @@ public class CommentService {
         return new Comments(results.size(), results);
     }
 
-    //Добавляет новый комментарий к объявлению от имени текущего пользователя
+    /**
+     * Добавляет новый комментарий к объявлению от имени текущего пользователя
+     * @param adId
+     * @param dto
+     * Создает сущность комментария
+     * Сохраняет результат в БД
+     * @return Comment Dto
+     */
     public Comment addComment(Long adId, CreateOrUpdateComment dto) {
         AdEntity ad = adRepository.findById(adId)
                 .orElseThrow(() -> new RuntimeException("Ad not found"));
         UserEntity currentUser = getCurrentUserEntity();
-        // Создать сущность комментария
+
         CommentEntity entity = commentMappingService.toEntity(dto, currentUser, ad);
         CommentEntity saved = commentRepository.save(entity);
         return commentMappingService.toDto(saved);
     }
 
-    //Обновляет комментарий. Проверяет, является ли текущий пользователь владельцем или администратором
+    /**
+     * Обновляет комментарий. Проверяет, является ли текущий пользователь владельцем или администратором
+     * @param adId
+     * @param commentId
+     * @param dto
+     * @return Comment Dto
+     */
     public Comment updateComment(Long adId, Long commentId, CreateOrUpdateComment dto) {
         CommentEntity entity = commentRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Comment not found"));
 
         userService.checkOwnerOrAdmin(entity.getAuthor());
 
-        // Обновить текст комментария
+
         entity.setText(dto.getText());
 
         CommentEntity updated = commentRepository.save(entity);
         return commentMappingService.toDto(updated);
     }
-    //Удаляет комментарий. Проверяет права доступа
+
+    /**
+     * Удаляет комментарий. Проверяет права доступа
+     * В случае ошибки поиска выводит текст ошибки
+     * @param adId
+     * @param commentId
+     */
     public void deleteComment(Long adId, Long commentId) {
         CommentEntity entity = commentRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Comment not found"));
