@@ -12,11 +12,26 @@ import ru.skypro.homework.repository.UserRepository;
 
 import java.util.List;
 
+/**
+ * Адаптер между нашей моделью пользователя и Spring Security.
+ * <p>
+ * Загружает пользователя из базы и преобразует его
+ * в {@link org.springframework.security.core.userdetails.UserDetails}.
+ */
+
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+
+    /**
+     * Загружает пользователя по логину (email) для процессов аутентификации.
+     *
+     * @param *username логин пользователя
+     * @return объект с данными для Spring Security
+     * @throws UsernameNotFoundException если пользователь не найден
+     */
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {

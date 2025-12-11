@@ -15,17 +15,49 @@ public class AdMappingService {
 
     private final AdMapper adMapper;
 
-    // Маппинг: Entity → короткое Ad DTO
+    // Entity → короткое Ad DTO
     public Ad toAdDto(AdEntity entity) {
-        return adMapper.toDto(entity);
+        Ad dto = adMapper.toDto(entity);
+
+        // pk ← id
+        if (entity.getId() != null) {
+            dto.setPk(entity.getId().intValue());
+        }
+
+        // image ← красивый URL
+        if (entity.getId() != null &&
+                entity.getImage() != null &&
+                !entity.getImage().isBlank()) {
+
+            dto.setImage("/ads/" + entity.getId() + "/image");
+        } else {
+            dto.setImage(null);
+        }
+
+        return dto;
     }
 
-    // Маппинг: Entity → ExtendedAd DTO
+    // Entity → ExtendedAd DTO
     public ExtendedAd toExtendedDto(AdEntity entity) {
-        return adMapper.toExtendedDto(entity);
+        ExtendedAd dto = adMapper.toExtendedDto(entity);
+
+        if (entity.getId() != null) {
+            dto.setPk(entity.getId().intValue());
+        }
+
+        if (entity.getId() != null &&
+                entity.getImage() != null &&
+                !entity.getImage().isBlank()) {
+
+            dto.setImage("/ads/" + entity.getId() + "/image");
+        } else {
+            dto.setImage(null);
+        }
+
+        return dto;
     }
 
-    // Маппинг: CreateOrUpdateAd DTO → новая сущность объявления
+    // CreateOrUpdateAd → новая сущность объявления
     public AdEntity toNewEntity(CreateOrUpdateAd dto, UserEntity author) {
         AdEntity entity = new AdEntity();
         entity.setTitle(dto.getTitle());
@@ -35,7 +67,7 @@ public class AdMappingService {
         return entity;
     }
 
-    // Маппинг: обновление существующего объявления полями из DTO
+    // Обновление существующего объявления полями из DTO
     public void updateEntity(CreateOrUpdateAd dto, AdEntity entity) {
         entity.setTitle(dto.getTitle());
         entity.setDescription(dto.getDescription());

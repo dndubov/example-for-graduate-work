@@ -5,6 +5,13 @@ import lombok.*;
 
 import java.util.List;
 
+/**
+ * JPA-сущность пользователя.
+ * <p>
+ * Хранит учётные данные, роль и профильную информацию,
+ * используемую для аутентификации и отображения в клиенте.
+ */
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -19,10 +26,10 @@ public class UserEntity {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String email;      // логин
+    private String email;      // логин пользователя в системе
 
     @Column(nullable = false)
-    private String password;
+    private String password;   // хэш пароля
 
     @Column(name = "first_name")
     private String firstName;

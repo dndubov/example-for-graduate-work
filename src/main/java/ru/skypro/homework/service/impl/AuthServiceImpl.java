@@ -3,25 +3,33 @@ package ru.skypro.homework.service.impl;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
 import ru.skypro.homework.dto.Register;
+import ru.skypro.homework.model.UserEntity;
+import ru.skypro.homework.repository.UserRepository;
 import ru.skypro.homework.service.AuthService;
 import ru.skypro.homework.service.CustomUserDetailsManager;
 
-import java.util.Optional;
+/**
+ * Реализует логику регистрации и аутентификации пользователей.
+ * <p>
+ * Создаёт новых пользователей в системе Spring Security и
+ * проверяет корректность логина/пароля при входе.
+ */
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
-
     private final CustomUserDetailsManager manager;
     private final PasswordEncoder encoder;
+    private final UserRepository userRepository;
 
     public AuthServiceImpl(CustomUserDetailsManager manager,
-                           PasswordEncoder passwordEncoder) {
+                           PasswordEncoder encoder,
+                           UserRepository userRepository) {
         this.manager = manager;
-        this.encoder = passwordEncoder;
+        this.encoder = encoder;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -29,75 +37,109 @@ public class AuthServiceImpl implements AuthService {
         if (!manager.userExists(userName)) {
             return false;
         }
+
         UserDetails userDetails = manager.loadUserByUsername(userName);
         return encoder.matches(password, userDetails.getPassword());
     }
 
+    /**
+     * Регистрирует нового пользователя, если логин ещё не занят.
+     *
+     * @param register DTO с данными для регистрации
+     * @return {@code true}, если пользователь успешно создан
+     */
+
     @Override
     public boolean register(Register register) {
+        System.out.println(">>> REGISTER CALLED");
+
+        // Проверяем, что такой email уже есть в нашей БД
+        if (userRepository.findByEmail(register.getUsername()).isPresent()) {
+            return false;
+        }
+
+        // Проверяем, что такого пользователя ещё нет в security-хранилище
         if (manager.userExists(register.getUsername())) {
             return false;
         }
+
+        // Создаём запись в таблице users
+        UserEntity entity = new UserEntity();
+        entity.setEmail(register.getUsername());
+        entity.setPassword(encoder.encode(register.getPassword()));
+        entity.setFirstName(register.getFirstName());
+        entity.setLastName(register.getLastName());
+        entity.setPhone(register.getPhone());
+        entity.setRole("USER");
+
+        userRepository.save(entity);
+
+        // Создаём пользователя в Spring Security
         manager.createUser(
                 User.builder()
-                        .passwordEncoder(this.encoder::encode)
+                        .passwordEncoder(encoder::encode)
                         .password(register.getPassword())
                         .username(register.getUsername())
-                        .roles(register.getRole().name())
+                        .roles("USER")
                         .build());
+
         return true;
     }
 
     @Override
-    public boolean changePassword(String name, String currentPassword, String newPassword) {
-        if (!manager.userExists(name)) {
-            return false; // Пользователь не найден
+    public boolean changePassword(String username, String currentPassword, String newPassword) {
+        if (!manager.userExists(username)) {
+            return false;
         }
 
-        // Загружаем данные пользователя
-        UserDetails userDetails = manager.loadUserByUsername(name);
+        UserDetails userDetails = manager.loadUserByUsername(username);
 
-        // Проверяем, совпадает ли текущий пароль с хешированным в БД
+        // Проверка старого пароля
         if (!encoder.matches(currentPassword, userDetails.getPassword())) {
-            return false; // Текущий пароль неверен
+            return false;
         }
 
-        // Если пароль верен, обновляем его на новый
-        // Создаем обновленный объект UserDetails
-        UserDetails updatedUserDetails = User.builder()
-                .username(userDetails.getUsername())
-                .password(encoder.encode(newPassword)) // Хешируем новый пароль
-                .authorities(userDetails.getAuthorities()) // Сохраняем старые права
+        // Обновление пароля в security-хранилище
+        UserDetails updated = User.builder()
+                .username(username)
+                .password(encoder.encode(newPassword))
+                .authorities(userDetails.getAuthorities())
                 .build();
 
-        // Обновляем пользователя в хранилище
-        manager.updateUser(updatedUserDetails);
+        manager.updateUser(updated);
 
-        return true; // Пароль успешно изменён
+        // Обновляем пароль в нашей БД
+        userRepository.findByEmail(username).ifPresent(entity -> {
+            entity.setPassword(encoder.encode(newPassword));
+            userRepository.save(entity);
+        });
+
+        return true;
     }
 
     @Override
     public boolean setNewPassword(String email, String newPassword) {
+
         if (!manager.userExists(email)) {
-            return false; // Пользователь не найден
+            return false;
         }
 
-        // Загружаем текущие данные пользователя
         UserDetails userDetails = manager.loadUserByUsername(email);
 
-        // Создаем обновленный объект UserDetails с новым паролем
-        // Все остальные поля (username, authorities) остаются прежними
-        UserDetails updatedUserDetails = User.builder()
-                .username(userDetails.getUsername())
-                .password(encoder.encode(newPassword)) // Хешируем новый пароль
-                .authorities(userDetails.getAuthorities()) // Сохраняем старые права
+        UserDetails updated = User.builder()
+                .username(email)
+                .password(encoder.encode(newPassword))
+                .authorities(userDetails.getAuthorities())
                 .build();
 
-        // Обновляем пользователя в хранилище
-        manager.updateUser(updatedUserDetails);
+        manager.updateUser(updated);
+
+        // Обновляем пароль в нашей БД
+        userRepository.findByEmail(email).ifPresent(entity -> {
+            entity.setPassword(encoder.encode(newPassword));
+            userRepository.save(entity);
+        });
 
         return true;
     }
-
-
 }

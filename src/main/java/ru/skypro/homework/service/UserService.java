@@ -22,73 +22,88 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
+/**
+ * Бизнес-логика, связанная с пользователем.
+ * <p>
+ * Работает с текущим авторизованным пользователем,
+ * изменяет его профиль и пароль, управляет аватаром.
+ */
+
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class UserService {
 
-    private static UserRepository userRepository;
-    private static UserMappingService userMappingService;
-    private static PasswordEncoder passwordEncoder;
-    private static AuthenticationManager authenticationManager; // для проверки текущего пароля
+    private final UserRepository userRepository;
+    private final UserMappingService userMappingService;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final ImageService imageService; // сейчас не используем, но пусть будет
 
     // Путь для сохранения аватаров
-    private static final String avatarUploadPath = "uploads/avatars/";
+    private static final String AVATAR_UPLOAD_PATH = "uploads/avatars/";
 
-    // Метод для получения текущего пользователя
-    static UserEntity getCurrentUserEntity() {
+    /** Вытянуть текущего пользователя из security-контекста и найти его в БД */
+    public UserEntity getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName(); // имя пользователя (email)
+        String email = authentication.getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    public static User getCurrentUser() {
+    /** DTO текущего пользователя для /users/me */
+    public User getCurrentUser() {
         UserEntity userEntity = getCurrentUserEntity();
         return userMappingService.toUserDto(userEntity);
     }
 
-    public static User updateUser(UpdateUser dto) {
+    /** Обновление профиля /users/me (имя, фамилия, телефон) */
+    public User updateUser(UpdateUser dto) {
         UserEntity userEntity = getCurrentUserEntity();
         userMappingService.updateUserEntity(dto, userEntity);
         UserEntity saved = userRepository.save(userEntity);
         return userMappingService.toUserDto(saved);
     }
 
-    public static void updateUserImage(MultipartFile image) {
-        UserEntity userEntity = getCurrentUserEntity();
+    /** Обновление аватара пользователя */
+    public void updateUserImage(MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            return;
+        }
 
-        // Генерация уникального имени файла (например, с UUID)
-        String fileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
-        Path filePath = Paths.get(avatarUploadPath).resolve(fileName);
+        UserEntity user = getCurrentUserEntity();
 
         try {
-            // Создать директорию, если её нет
-            Files.createDirectories(Paths.get(avatarUploadPath));
-            // Сохранить файл
+            // директория хранения
+            Path uploadDir = Paths.get("images", "users");
+            Files.createDirectories(uploadDir);
+
+            // уникальное имя файла
+            String original = image.getOriginalFilename();
+            String fileName = UUID.randomUUID() + "_" +
+                    (original == null ? "avatar" : original);
+
+            Path filePath = uploadDir.resolve(fileName);
+
+            // сохраняем файл
             Files.write(filePath, image.getBytes());
+
+            // относительный путь для фронта
+            String relativePath = "/images/users/" + fileName;
+
+            // сохраняем в БД
+            user.setImage(relativePath);
+            userRepository.save(user);
+
         } catch (IOException e) {
-            throw new RuntimeException("Failed to save avatar image", e);
+            throw new RuntimeException("Ошибка сохранения аватара", e);
         }
-        // Удалить старое изображение, если оно было
-        if (userEntity.getImage() != null) {
-            Path oldImagePath = Paths.get(userEntity.getImage());
-            try {
-                Files.deleteIfExists(oldImagePath);
-            } catch (IOException e) {
-                // Логировать ошибку, но не прерывать выполнение
-                System.err.println("Could not delete old avatar: " + e.getMessage());
-            }
-        }
-        // Обновить путь к изображению в сущности
-        userEntity.setImage(filePath.toString());
-        userRepository.save(userEntity);
     }
 
-    public static void setPassword(NewPassword dto) {
+    /** Смена пароля текущего пользователя */
+    public void setPassword(NewPassword dto) {
         UserEntity userEntity = getCurrentUserEntity();
 
-        // Проверить текущий пароль
         Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
         try {
             authenticationManager.authenticate(
@@ -99,11 +114,12 @@ public class UserService {
             throw new RuntimeException("Current password is incorrect");
         }
 
-        // Закодировать и установить новый пароль
         String encodedNewPassword = passwordEncoder.encode(dto.getNewPassword());
         userEntity.setPassword(encodedNewPassword);
         userRepository.save(userEntity);
     }
+
+    /** Проверка: текущий пользователь — владелец или админ */
     public void checkOwnerOrAdmin(UserEntity owner) {
         UserEntity currentUser = getCurrentUserEntity();
         if (!owner.equals(currentUser) && !isAdmin()) {
@@ -111,7 +127,7 @@ public class UserService {
         }
     }
 
-    // Метод для проверки прав администратора
+    /** Есть ли у текущего пользователя роль ADMIN */
     public boolean isAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication.getAuthorities().stream()

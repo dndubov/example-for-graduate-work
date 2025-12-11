@@ -12,6 +12,14 @@ import ru.skypro.homework.repository.UserRepository;
 
 import java.util.List;
 
+/**
+ * Обёртка над хранилищем пользователей для интеграции
+ * с инфраструктурой Spring Security.
+ * <p>
+ * Реализует CRUD-операции над пользователями в соответствии
+ * с контрактом {@link org.springframework.security.provisioning.UserDetailsManager}.
+ */
+
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsManager implements UserDetailsManager {
