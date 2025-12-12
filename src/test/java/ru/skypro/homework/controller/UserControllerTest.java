@@ -51,12 +51,11 @@ class UserControllerTest {
 
     @Test
     void getCurrentUser_WithAuthenticatedUser_ReturnsUserDto() throws Exception {
-        // Arrange
+
         User expectedUserDto = new User(); // Инициализируйте как нужно
         expectedUserDto.setEmail("test@example.com");
         when(userService.getCurrentUser()).thenReturn(expectedUserDto);
 
-        // Act & Assert
         mockMvc.perform(get("/users/me"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
