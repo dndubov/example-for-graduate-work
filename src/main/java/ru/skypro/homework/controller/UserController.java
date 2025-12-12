@@ -40,13 +40,12 @@ import java.nio.file.Paths;
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
-@CrossOrigin("http://localhost:3000")
 @Tag(name = "Пользователи", description = "Получение и обновление информации о пользователях")
 public class UserController {
 
     private final AuthService authService;
     private final UserService userService;
-    private final UserRepository userRepository; // добавили репозиторий
+    private final UserRepository userRepository;
 
     /**
      * Изменяет пароль текущего пользователя при знании старого пароля.
@@ -104,18 +103,22 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> updateUserImage(
             @RequestParam(value = "image", required = false) MultipartFile image,
-            @RequestParam(value = "file", required = false) MultipartFile file
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "avatar", required = false) MultipartFile avatar
     ) {
-        MultipartFile actual = (image != null && !image.isEmpty()) ? image : file;
-        if (actual == null || actual.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
+        MultipartFile actual =
+                (image != null && !image.isEmpty()) ? image :
+                        (file != null && !file.isEmpty()) ? file :
+                                (avatar != null && !avatar.isEmpty()) ? avatar : null;
+
+        if (actual == null) return ResponseEntity.badRequest().build();
+
         userService.updateUserImage(actual);
         return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "Получить аватар пользователя по id")
-    @GetMapping(value = "/{id}/image", produces = MediaType.IMAGE_JPEG_VALUE)
+    @GetMapping(value = "/{id}/image", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> getUserImage(@PathVariable Long id) {
         // достаём пользователя
