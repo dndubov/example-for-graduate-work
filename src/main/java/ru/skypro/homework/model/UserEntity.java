@@ -36,7 +36,10 @@ public class UserEntity {
     private String image;
 
     @Column(nullable = false)
-    private String role; // USER / ADMIN (можно Enum позже)
+    /**
+     * Определены роли USER / ADMIN
+     */
+    private String role;
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AdEntity> ads;
