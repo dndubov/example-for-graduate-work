@@ -35,7 +35,10 @@ public class UserService {
     /**
      * Устанавливает путь для сохранения аватаров
      */
-    private static final String avatarUploadPath = "uploads/avatars/";
+    static String avatarUploadPath = "uploads/avatars/";
+
+    public UserService(UserRepository userRepository, UserMappingService userMappingService, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager) {
+    }
 
     /**
      * Метод для получения текущего пользователя из контекста аутентификации

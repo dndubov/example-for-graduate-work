@@ -17,4 +17,8 @@ public class Ad {
         this.price = price;
         this.title = title;
     }
+
+    public Ad() {
+
+    }
 }

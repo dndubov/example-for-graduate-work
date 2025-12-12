@@ -31,11 +31,14 @@ public class AdService {
     private static AdRepository adRepository;
     private static UserRepository userRepository; // для поиска автора объявления
     private static AdMappingService adMappingService;
-    private final UserMappingService userMappingService; // для получения данных автора в ExtendedAd
+    private static UserMappingService userMappingService; // для получения данных автора в ExtendedAd
     private static UserService userService;
 
     // Путь для сохранения изображений объявлений
-    private static final String adImageUploadPath = "uploads/ads/";
+    static String adImageUploadPath = "uploads/ads/";
+
+    public AdService(AdRepository adRepository, UserRepository userRepository, AdMappingService adMappingService, UserMappingService userMappingService, UserService userService) {
+    }
 
     /**
      * Метод для получения текущего пользователя

@@ -29,6 +29,9 @@ public class CommentService {
     private CommentMappingService commentMappingService;
     private final UserService userService;
 
+    public CommentService(CommentRepository commentRepository, AdRepository adRepository, UserRepository userRepository, CommentMappingService commentMappingService, UserService userService) {
+    }
+
     /**
      * Метод для получения текущего пользователя
      * @return current user
