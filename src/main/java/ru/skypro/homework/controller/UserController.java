@@ -100,19 +100,17 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-    @PostMapping(
-            value = "/me/image",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
+    @PostMapping(value = "/me/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> updateUserImage(@RequestParam("file") MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            System.out.println("updateUserImage: файл не получен или пустой");
+    public ResponseEntity<Void> updateUserImage(
+            @RequestParam(value = "image", required = false) MultipartFile image,
+            @RequestParam(value = "file", required = false) MultipartFile file
+    ) {
+        MultipartFile actual = (image != null && !image.isEmpty()) ? image : file;
+        if (actual == null || actual.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-
-        System.out.println("updateUserImage: получен файл, size = " + file.getSize());
-        userService.updateUserImage(file);
+        userService.updateUserImage(actual);
         return ResponseEntity.ok().build();
     }
 
