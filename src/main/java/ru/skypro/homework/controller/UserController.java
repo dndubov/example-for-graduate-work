@@ -3,9 +3,7 @@ package ru.skypro.homework.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,7 +34,6 @@ import java.nio.file.Paths;
  *     <li>загрузка и получение аватара.</li>
  * </ul>
  */
-
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
@@ -53,16 +50,17 @@ public class UserController {
      * @param dto объект, содержащий старый и новый пароли
      * @return статус успешной или неуспешной смены пароля
      */
-
     @Operation(summary = "Сменить пароль пользователя")
     @PostMapping("/set_password")
     public ResponseEntity<?> setPassword(@RequestBody NewPassword dto) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
-        boolean success = authService.changePassword(username,
+        boolean success = authService.changePassword(
+                username,
                 dto.getCurrentPassword(),
-                dto.getNewPassword());
+                dto.getNewPassword()
+        );
 
         if (success) {
             return ResponseEntity.ok().build();
@@ -75,7 +73,6 @@ public class UserController {
      *
      * @return DTO с основной информацией о пользователе
      */
-
     @Operation(summary = "Получить информацию о текущем пользователе")
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
@@ -90,7 +87,6 @@ public class UserController {
      * @param dto объект с новыми значениями полей профиля
      * @return обновлённые данные пользователя
      */
-
     @Operation(summary = "Обновить данные текущего пользователя")
     @PatchMapping("/me")
     @PreAuthorize("isAuthenticated()")
@@ -99,9 +95,17 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-    @PostMapping(value = "/me/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    /**
+     * Загружает аватар текущего пользователя.
+     * <p>
+     * Поддерживает несколько имён параметров (image/file/avatar)
+     * для совместимости с фронтовыми шаблонами.
+     *
+     * @return статус выполнения операции
+     */
+    @PatchMapping(value = "/me/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> updateUserImage(
+    public ResponseEntity<Void> updateUserImagePatch(
             @RequestParam(value = "image", required = false) MultipartFile image,
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "avatar", required = false) MultipartFile avatar
@@ -111,12 +115,24 @@ public class UserController {
                         (file != null && !file.isEmpty()) ? file :
                                 (avatar != null && !avatar.isEmpty()) ? avatar : null;
 
-        if (actual == null) return ResponseEntity.badRequest().build();
+        if (actual == null) {
+            return ResponseEntity.badRequest().build();
+        }
 
         userService.updateUserImage(actual);
         return ResponseEntity.ok().build();
     }
 
+
+    /**
+     * Возвращает аватар пользователя по его идентификатору.
+     * <p>
+     * В ответ добавлены заголовки, запрещающие кеширование,
+     * так как фронтовый шаблон не всегда корректно обновляет изображение.
+     *
+     * @param id идентификатор пользователя
+     * @return бинарные данные изображения
+     */
     @Operation(summary = "Получить аватар пользователя по id")
     @GetMapping(value = "/{id}/image", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @PreAuthorize("isAuthenticated()")
@@ -132,6 +148,7 @@ public class UserController {
 
         try {
             // в БД путь хранится вроде "/images/users/....jpg"
+            // для чтения с диска убираем ведущий "/"
             Path filePath = Paths.get(
                     imagePath.startsWith("/") ? imagePath.substring(1) : imagePath
             );
@@ -150,9 +167,15 @@ public class UserController {
             return ResponseEntity
                     .ok()
                     .contentType(mediaType)
+                    // Workaround: запрет кеширования аватара (фронтовый шаблон SkyPro)
+                    .cacheControl(CacheControl.noStore().mustRevalidate())
+                    .header(HttpHeaders.PRAGMA, "no-cache")
+                    .header(HttpHeaders.EXPIRES, "0")
                     .body(bytes);
+
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }
     }
+
 }
